@@ -1,15 +1,26 @@
-from flask import Flask, jsonify, render_template, request
-from markupsafe import escape
 import json
+from flask import Flask, Response, jsonify, render_template
+from flask_cors import CORS, cross_origin
+from markupsafe import escape
 
 from flaskr.db import engine, text
 
 app = Flask(__name__)
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 @app.route('/languages')
+@cross_origin()
 def getLanuages():
-    languages = load_languages_from_db()
-    return jsonify({'data': languages})
+    languages = load_languages_from_db()    
+    
+    return jsonify({'languages': [{
+            'uuid': lang.uuid,
+            'name': lang.name,
+            'code': lang.code,
+            'country': lang.country
+        } for lang in languages]})
+        
 
 @app.route('/')
 def hello():
@@ -34,11 +45,7 @@ def handleHello(name=None):
 def load_languages_from_db():
     with engine.connect() as connection:
         res = connection.execute(text("SELECT * FROM languages"))
-        languages = []
-        for row_lang in res.all():
-            print(row_lang)
-            languages.append(json.dumps(row_lang))
-        
+        languages = res.mappings().all()
         return languages
 
 app.run(debug = True)
